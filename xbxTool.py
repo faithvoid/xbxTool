@@ -49,10 +49,11 @@ def create_dds_header(width, height, dxt_format, data_size):
 
     return header
 
-
-def convert_xbx_to_dds(xbx_path, width=256, height=256, dxt_format="DXT1", output_dir=None):
+def convert_xbx_to_dds(xbx_path, width, height, dxt_format, output_dir=None):
     try:
+        print(f"[DEBUG] Writing DDS with width={width} height={height} format={dxt_format}")
         raw_texture = extract_xpr0_raw_texture(xbx_path)
+        print(f"[DEBUG] Raw texture size: {len(raw_texture)} bytes")
         dds_header = create_dds_header(width, height, dxt_format, len(raw_texture))
         dds_data = dds_header + raw_texture
 
@@ -72,13 +73,30 @@ def convert_xbx_to_dds(xbx_path, width=256, height=256, dxt_format="DXT1", outpu
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python xbx_to_dds.py <file.xbx> [width height format] [output_dir]")
+        print("Usage: python xbxTool.py <file.xbx> [width height format] [output_dir]")
         sys.exit(1)
 
     xbx_path = sys.argv[1]
-    width = int(sys.argv[2]) if len(sys.argv) > 2 else 256
-    height = int(sys.argv[3]) if len(sys.argv) > 3 else 256
-    dxt_format = sys.argv[4] if len(sys.argv) > 4 else "DXT1"
+    base_name = os.path.splitext(os.path.basename(xbx_path))[0].lower()
+    # Default values
+    width = 256
+    height = 256
+    dxt_format = "DXT1"
+    # CLI arguments
+    if len(sys.argv) > 2:
+        width = int(sys.argv[2])
+    if len(sys.argv) > 3:
+        height = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        dxt_format = sys.argv[4]
     output_dir = sys.argv[5] if len(sys.argv) > 5 else None
+
+    # Override for specific names, only if no CLI args are given
+    if base_name == "titleimage" and len(sys.argv) <= 2:
+        width, height, dxt_format = 128, 128, "DXT1"
+        print("[INFO] Detected TitleImage.xbx: Using 128x128 DXT1")
+    elif base_name == "saveimage" and len(sys.argv) <= 2:
+        width, height, dxt_format = 64, 64, "DXT1"
+        print("[INFO] Detected SaveImage.xbx: Using 64x64 DXT5")
 
     convert_xbx_to_dds(xbx_path, width, height, dxt_format, output_dir)
